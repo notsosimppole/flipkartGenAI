@@ -81,7 +81,6 @@ export async function POST(request: Request) {
     return new Response(
         JSON.stringify({
             response: chatMessage.text,
-            chat: chatResponse,
             gen: genChatResponse,
         }),
         {

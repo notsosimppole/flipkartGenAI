@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { db } from "@/firebase/firebase";
@@ -178,7 +179,10 @@ const ChatPage = ({ params: { id } }: Props) => {
 
         const outboundMessages = [...(last10Messages as GPTMessage[])];
 
-        await fetch("/api/prompt", {
+        const data: {
+            response: string;
+            gen: string;
+        } = await fetch("/api/prompt", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -195,15 +199,55 @@ const ChatPage = ({ params: { id } }: Props) => {
             .then((response) => {
                 return response.json();
             })
-            .then(() => {
+            .then((data) => {
                 setChadProcessing(false);
                 setChadResponded(true);
-
+                return data;
                 // Toast notification when successful!
                 // toast.success("Chad has responded!", {
                 //   id: notification,
                 // });
             });
+        if (data.gen) {
+            await fetch("/api/gen", {
+                method: "POST",
+                body: JSON.stringify({
+                    prompt: data.gen,
+                    session,
+                    id,
+                }),
+            })
+                .then((r) => {
+                    if (r.ok) {
+                        return r.blob().then((w) => {
+                            return URL.createObjectURL(w);
+                        });
+                    }
+                })
+                .then((uri) => {
+                    const message: Message = {
+                        text: uri || "",
+                        createdAt: serverTimestamp(),
+                        user: {
+                            _id: session?.user?.email,
+                            name: "Chad",
+                            avatar: "/chadgpt.png",
+                        },
+                    };
+
+                    addDoc(
+                        collection(
+                            db,
+                            "users",
+                            session?.user?.email!,
+                            "chats",
+                            id,
+                            "messages"
+                        ),
+                        message
+                    );
+                });
+        }
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -298,6 +342,17 @@ const ChatPage = ({ params: { id } }: Props) => {
                     {/* Message */}
                     {messages?.docs.map((message, i) => {
                         const isChad = message.data().user.name === "Chad";
+                        if (
+                            isChad &&
+                            i === messages?.docs.length - 1 &&
+                            chadResponding
+                        )
+                            return null;
+
+                        if (!message.data().text) return null;
+                        const messageString: string = message
+                            .data()
+                            .text.trimStart();
 
                         return (
                             <div
@@ -318,16 +373,25 @@ const ChatPage = ({ params: { id } }: Props) => {
                                 </div>
 
                                 <div className="max-w-2xl">
-                                    <p
-                                        ref={messageRef}
-                                        className="text-base whitespace-pre-wrap"
-                                    >
-                                        {isChad &&
-                                        i === messages?.docs.length - 1 &&
-                                        chadResponding
-                                            ? null
-                                            : message.data().text.trimStart()}
-                                    </p>
+                                    {messageString.slice(0, 4) === "blob" ? (
+                                        <img
+                                            ref={messageRef}
+                                            className="text-base whitespace-pre-wrap"
+                                            src={messageString}
+                                            alt="chad response"
+                                        />
+                                    ) : (
+                                        <p
+                                            ref={messageRef}
+                                            className="text-base whitespace-pre-wrap"
+                                        >
+                                            {isChad &&
+                                            i === messages?.docs.length - 1 &&
+                                            chadResponding
+                                                ? null
+                                                : messageString.trimStart()}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         );
