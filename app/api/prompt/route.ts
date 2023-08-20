@@ -61,12 +61,12 @@ export async function POST(request: Request) {
     const genChatResponse = await query(genChatOutboundMessages, id, model);
 
     const chatMessage: Message = {
-        text: chatResponse || "Chad could not find a response",
+        text: chatResponse || "ChicChat could not find a response",
         createdAt: admin.firestore.Timestamp.now(),
         user: {
-            _id: "ChadGPT",
-            name: "Chad",
-            avatar: "/chadgpt.png",
+            _id: "ChicChat",
+            name: "ChicChat",
+            avatar: "/logo.png",
         },
     };
 

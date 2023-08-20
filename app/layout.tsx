@@ -12,10 +12,10 @@ import {
 } from "./components";
 
 export const metadata = {
-  title: "ChadGPT",
+  title: "ChicChat AI",
   description: "Generative AI Language Model",
   icons: {
-    icon: "/chadgpt.png",
+    icon: "/logo.png",
   },
 };
 
@@ -34,7 +34,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
 
                 {/* <ClientProvider /> */}
 
-                <div className='bg-white dark:bg-[#343541] flex-1'>
+                <div className='bg-white dark:bg-[#001C30] flex-1'>
                   {children}
                 </div>
               </div>

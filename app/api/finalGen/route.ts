@@ -1,17 +1,18 @@
-import { adminDb } from "@/firebase/firebaseAdmin";
-import admin from "firebase-admin";
-
 async function query(data: string) {
+    if (data == "No."){
+        return ""
+    }
     const response = await fetch(
-        "https://api-inference.huggingface.co/models/prompthero/openjourney",
+        "https://api-inference.huggingface.co/models/MohamedRashad/diffusion_fashion",
         {
             headers: {
-                Authorization: "Bearer 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",
+                Authorization: "Bearer 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",
             },
             method: "POST",
             body: data,
         }
     );
+    console.log(data);
     const result = await response.blob();
     return result;
 }

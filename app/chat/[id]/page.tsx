@@ -57,6 +57,7 @@ const ChatPage = ({ params: { id } }: Props) => {
     const [scrollHeight, setScrollHeight] = useState(
         scrollRef.current?.scrollHeight
     );
+    const [isFinal, setIsFinal] = useState(false);
 
     const [messages, loading] = useCollection(
         session &&
@@ -118,7 +119,7 @@ const ChatPage = ({ params: { id } }: Props) => {
 
     if (
         chadResponded &&
-        messages?.docs[messages?.docs.length - 1]?.data().user.name === "Chad"
+        messages?.docs[messages?.docs.length - 1]?.data().user.name === "ChicChat"
     ) {
         autoTypingBotResponse(
             messages?.docs[messages?.docs.length - 1]?.data().text.trimStart()
@@ -169,7 +170,7 @@ const ChatPage = ({ params: { id } }: Props) => {
         const chatContext = messages?.docs.map((message) => {
             return {
                 role:
-                    message.data().user.name === "Chad" ? "assistant" : "user",
+                    message.data().user.name === "ChicChat" ? "assistant" : "user",
                 content: message.data().text.trim() as string,
             };
         }) as GPTMessage[];
@@ -230,8 +231,8 @@ const ChatPage = ({ params: { id } }: Props) => {
                         createdAt: serverTimestamp(),
                         user: {
                             _id: session?.user?.email,
-                            name: "Chad",
-                            avatar: "/chadgpt.png",
+                            name: "ChicChat",
+                            avatar: "/logo.png",
                         },
                     };
 
@@ -284,6 +285,73 @@ const ChatPage = ({ params: { id } }: Props) => {
             router.push(`/chat/${doc.id}`);
         }
     };
+
+    const getFinalImage = async () => {
+        console.log("Clicked!")
+        const data: {
+            response: string;
+            gen: string;
+        } = await fetch("/api/prompt", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({
+                prompt: "yes",
+                id,
+                model,
+                session,
+            }),
+        })
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                return data;
+            });
+        if (data.gen) {
+            await fetch("/api/finalGen", {
+                method: "POST",
+                body: JSON.stringify({
+                    prompt: data.gen,
+                    session,
+                    id,
+                }),
+            })
+                .then((r) => {
+                    if (r.ok) {
+                        return r.blob().then((w) => {
+                            return URL.createObjectURL(w);
+                        });
+                    }
+                })
+                .then((uri) => {
+                    const message: Message = {
+                        text: uri || "",
+                        createdAt: serverTimestamp(),
+                        user: {
+                            _id: session?.user?.email,
+                            name: "ChicChat",
+                            avatar: "/logo.png",
+                        },
+                    };
+
+                    addDoc(
+                        collection(
+                            db,
+                            "users",
+                            session?.user?.email!,
+                            "chats",
+                            id,
+                            "messages"
+                        ),
+                        message
+                    );
+                });
+        }
+    };
+
 
     return (
         <div
@@ -341,7 +409,7 @@ const ChatPage = ({ params: { id } }: Props) => {
 
                     {/* Message */}
                     {messages?.docs.map((message, i) => {
-                        const isChad = message.data().user.name === "Chad";
+                        const isChad = message.data().user.name === "ChicChat";
                         if (
                             isChad &&
                             i === messages?.docs.length - 1 &&
@@ -359,7 +427,7 @@ const ChatPage = ({ params: { id } }: Props) => {
                                 key={i}
                                 className={`flex text-gray-700 dark:text-gray-300 ${
                                     isChad && "bg-gray-100 dark:bg-[#434654]"
-                                } py-5 max-w-2xl mx-auto space-x-5 px-10`}
+                                } py-5 max-w-2xl mx-auto space-x-5 px-10` }
                             >
                                 <div className="shrink-0 object-cover">
                                     <Image
@@ -378,7 +446,7 @@ const ChatPage = ({ params: { id } }: Props) => {
                                             ref={messageRef}
                                             className="text-base whitespace-pre-wrap"
                                             src={messageString}
-                                            alt="chad response"
+                                            alt="ChicChat response"
                                         />
                                     ) : (
                                         <p
@@ -437,18 +505,34 @@ const ChatPage = ({ params: { id } }: Props) => {
                         placeholder="Send a message..."
                         onKeyDown={handleKeyDown}
                     />
-
+                    {/* button for the user to confirm is this kind of outfit they need, press yes to confirm */}
+                    {
+                        !chadResponding && !prompt && !chadProcessing && !messages?.empty && (
+                            <button
+                                type="submit"
+                                disabled={!session || !prompt || chadProcessing}
+                                className={`bg-[#DAFFFB] text-black p-2 rounded-xl hover:opacity-90 cursor-pointer font-bold`}
+                                onClick={() => {
+                                    setIsFinal(true);
+                                    setPrompt("yes");
+                                    getFinalImage();
+                                }}
+                            >
+                                This is my final outfit!
+                            </button>
+                        )
+                    }
                     <button
                         type="submit"
                         disabled={!session || !prompt || chadProcessing}
-                        className={`bg-[#11A37F] ${
+                        className={`bg-[#DAFFFB] text-black ${
                             chadProcessing &&
-                            "disabled:bg-[#11A37F] disabled:cursor-not-allowed"
-                        } text-white ${
+                            "disabled:bg-[#DAFFFB] disabled:cursor-not-allowed"
+                        } text-black ${
                             !chadProcessing &&
-                            "active:bg-[#0C6952] disabled:bg-gray-300 disabled:active:bg-gray-300 dark:disabled:bg-gray-900/10 dark:disabled:active:bg-gray-900/10 disabled:cursor-not-allowed disabled:hover:opacity-100"
+                            "active:bg-[#DAFFFB] disabled:bg-gray-300 disabled:active:bg-gray-300 dark:disabled:bg-gray-900/10 dark:disabled:active:bg-gray-900/10 disabled:cursor-not-allowed disabled:hover:opacity-100"
                         } self-end font-bold rounded px-3 py-2 h-7`}
-                    >
+                    >                        
                         {chadProcessing ? (
                             <span ref={loadingRef} className="loading"></span>
                         ) : (
